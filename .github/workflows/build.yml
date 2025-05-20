@@ -1,0 +1,46 @@
+name: Build Kivy APK
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get current date
+        id: get-date
+        run: echo "date=$(date -u '+%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v3
+        with:
+          path: .buildozer_global
+          key: buildozer-global-${{ hashFiles('buildozer.spec') }}
+
+      - name: Cache .buildozer directory
+        uses: actions/cache@v3
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-${{ hashFiles('buildozer.spec') }}
+
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: stable
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: kivy-apk
+          path: ${{ steps.buildozer.outputs.filename }}
